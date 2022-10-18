@@ -19,6 +19,9 @@ namespace PlantHealthAppXam.Models
         public string latitude { get; set; }
         public string ImageURL { get; set; }
         public bool Pesticidesprayed { get; set; } = false;
+        public string ETag { get; set; }
+        public string RowKey { get; set; }
+        public string PartitionKey { get; set; }
 
     }
 }
