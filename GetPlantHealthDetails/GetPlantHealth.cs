@@ -13,17 +13,16 @@ using System.Linq;
 using System.Net.Http;
 using System.Net;
 using Microsoft.Azure.KeyVault;
-using System.Linq;
 
 namespace GetPlantHealthDetails
 {
     public static class GetPlantHealth
     {
-        public static CloudStorageAccount storageAccount = null;
-        public static CloudTableClient tableClient = null;
-        public static CloudTable table = null;
-        static readonly string tableName = "PlantHealthAppTable";
-        static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
+        private static CloudStorageAccount storageAccount;
+        private static CloudTableClient tableClient;
+        private static CloudTable table;
+        private static readonly string tableName = "PlantHealthAppTable";
+        private static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
 
 
         [FunctionName("GetPlantHealth")]
@@ -41,15 +40,15 @@ namespace GetPlantHealthDetails
             string rowkey = req.Query["RowKey"];
             if (string.IsNullOrEmpty(rowkey))
             {
-                return new OkObjectResult(await GetPlantHealthDeatilsAsync());
+                return new OkObjectResult(await GetPlantHealthDeatilsAsync(log));
             }
             else
             {
-                return new OkObjectResult(await UpdatePlantHealthDeatilsByRowkeyAsync(rowkey));
+                return new OkObjectResult(await UpdatePlantHealthDeatilsByRowkeyAsync(rowkey, log));
             }
         }
 
-        public async static Task<List<PlantHealthDeatils>> GetPlantHealthDeatilsAsync()
+        public async static Task<List<PlantHealthDeatils>> GetPlantHealthDeatilsAsync(ILogger logger)
         {
             try
             {
@@ -80,12 +79,12 @@ namespace GetPlantHealthDetails
             }
             catch (Exception exp)
             {
-                Debug.Write(exp);
+                logger.LogError(exp, "Unable to GetPlantHealthDeatils");
                 return default;
             }
         }
 
-        public async static Task<HttpResponseMessage> UpdatePlantHealthDeatilsByRowkeyAsync(string rowkey)
+        public async static Task<HttpResponseMessage> UpdatePlantHealthDeatilsByRowkeyAsync(string rowkey, ILogger logger)
         {
             try
             {
@@ -105,7 +104,7 @@ namespace GetPlantHealthDetails
             }
             catch (Exception exp)
             {
-                Debug.Write(exp);
+                logger.LogError(exp, "Unable to Update PlantHealthDeatils");
                 return default;
             }
         }
