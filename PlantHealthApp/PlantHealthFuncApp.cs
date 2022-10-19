@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos.Table;
+using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -18,17 +19,23 @@ namespace PlantHealth.Function
         static string containerName = "planthealthcontainer/";
         static string tableName = "PlantHealthAppTable";
         private static TimeZoneInfo INDIAN_ZONE = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+        static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
 
-        static CloudStorageAccount storageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=planthealthapp;AccountKey=TtUK1vbYh3Z1vBycLsn+1UAeAGI0lBvPYwyQCE9Z68JdmT69byy7Qx8BSvqJDGPN/awTvrDf+6Zb+ASt9CV4mw==;EndpointSuffix=core.windows.net");
 
-        static CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-
-        static CloudTable table = tableClient.GetTableReference(tableName);
+        public static CloudStorageAccount storageAccount = null;
+        public static CloudTableClient tableClient = null;
+        public static CloudTable table = null;
 
         [FunctionName("PlantHealthFuncApp")]
         public async static Task Run([BlobTrigger("planthealthcontainer/{name}", Connection = "planthealthapp_STORAGE")] Stream myBlob, string name, ILogger log)
         {
             log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {myBlob.Length} Bytes");
+            var client = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
+            var connectionstring = await client.GetSecretAsync(secretIdentifier);
+
+            storageAccount = CloudStorageAccount.Parse(connectionstring.Value);
+            tableClient = storageAccount.CreateCloudTableClient();
+            table = tableClient.GetTableReference(tableName);
             string imageUrl = $"{storageAccountUri}{containerName}{name}";
             PlantHealthCustomVisionModel response = await GetProbabilityValuesFromCustomVisionRestApiAsync(imageUrl);
             if (ReportAffectedPlant(response))

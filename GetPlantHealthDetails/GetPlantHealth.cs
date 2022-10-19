@@ -21,7 +21,9 @@ namespace GetPlantHealthDetails
         public static CloudStorageAccount storageAccount = null;
         public static CloudTableClient tableClient = null;
         public static CloudTable table = null;
-        static string tableName = "PlantHealthAppTable";
+        static readonly string tableName = "PlantHealthAppTable";
+        static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
+
 
         [FunctionName("GetPlantHealth")]
         public static async Task<IActionResult> Run(
@@ -29,7 +31,7 @@ namespace GetPlantHealthDetails
             ILogger log)
         {
             var client = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
-            var connectionstring = await client.GetSecretAsync("https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7");
+            var connectionstring = await client.GetSecretAsync(secretIdentifier);
 
             storageAccount = CloudStorageAccount.Parse(connectionstring.Value);
             tableClient = storageAccount.CreateCloudTableClient();
