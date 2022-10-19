@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net;
 using Microsoft.Azure.KeyVault;
+using System.Linq;
 
 namespace GetPlantHealthDetails
 {
@@ -59,9 +60,7 @@ namespace GetPlantHealthDetails
                 do
                 {
                     TableQuerySegment<PlantHealthDeatils> resultSegment = await table.ExecuteQuerySegmentedAsync(query, token).ConfigureAwait(false);
-                    token = resultSegment.ContinuationToken;
-
-                    foreach (var entity in resultSegment.Results)
+                    foreach (var entity in resultSegment.Results.OrderBy(x => x.Pesticidesprayed))
                     {
                         PlantHealthDeatils details = new PlantHealthDeatils
                         {
@@ -74,7 +73,6 @@ namespace GetPlantHealthDetails
                             ETag = entity.ETag,
                             PartitionKey = entity.PartitionKey
                         };
-
                         plantHealthDeatilsList.Add(details);
                     }
                 } while (token != null);

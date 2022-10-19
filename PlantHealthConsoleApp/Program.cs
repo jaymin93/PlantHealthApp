@@ -30,9 +30,11 @@ namespace PlantHealthConsoleApp
 
         private static void CheckForNewFileAdditionToDirectory()
         {
-            FileSystemWatcher watcher = new();
-            watcher.Path = GetDirectoryForImageUpload();
-            watcher.Created += FileSystemWatcher_FileCreatedEvent; ;
+            FileSystemWatcher watcher = new()
+            {
+                Path = GetDirectoryForImageUpload()
+            };
+            watcher.Created += FileSystemWatcher_FileCreatedEvent;
             watcher.EnableRaisingEvents = true;
         }
 
