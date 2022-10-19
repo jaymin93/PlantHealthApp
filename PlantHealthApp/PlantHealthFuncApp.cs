@@ -20,19 +20,21 @@ namespace PlantHealth.Function
         static string tableName = "PlantHealthAppTable";
         private static TimeZoneInfo INDIAN_ZONE = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
         static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
+        static readonly string secretIdentifierForPrediction = "https://planthealthappsecret.vault.azure.net/secrets/predictionEndpointsecret/b6f86ef63dfc456bbd3883d1d45498b4";
 
 
         public static CloudStorageAccount storageAccount = null;
         public static CloudTableClient tableClient = null;
         public static CloudTable table = null;
+        private static string predictionEndpointsecret = string.Empty;
 
         [FunctionName("PlantHealthFuncApp")]
         public async static Task Run([BlobTrigger("planthealthcontainer/{name}", Connection = "planthealthapp_STORAGE")] Stream myBlob, string name, ILogger log)
         {
-            log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {myBlob.Length} Bytes");
             var client = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
             var connectionstring = await client.GetSecretAsync(secretIdentifier);
-
+            var prediction = await client.GetSecretAsync(secretIdentifierForPrediction);
+            predictionEndpointsecret = prediction.Value;
             storageAccount = CloudStorageAccount.Parse(connectionstring.Value);
             tableClient = storageAccount.CreateCloudTableClient();
             table = tableClient.GetTableReference(tableName);
@@ -90,7 +92,7 @@ namespace PlantHealth.Function
             {
                 var request = new RestRequest();
                 request.Method = Method.Post;
-                request.AddHeader("Prediction-Key", "5e59072f082048dbb880ce37fdf9a782");
+                request.AddHeader("Prediction-Key", predictionEndpointsecret);
                 request.AddHeader("Content-Type", "application/json");
                 request.AddParameter("application/json", $@"{{""Url"": ""{fileurl}""}}", ParameterType.RequestBody);
                 var response = await client.ExecuteAsync(request);

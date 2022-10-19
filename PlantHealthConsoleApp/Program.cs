@@ -1,18 +1,21 @@
 ﻿using Azure.Storage.Blobs;
+using Microsoft.Azure.KeyVault;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using System.Diagnostics.SymbolStore;
+using System.Runtime.InteropServices;
 
 namespace PlantHealthConsoleApp
 {
     public class Program
     {
         static IConfiguration? config;
-
         static string? connectionstring;
-
         static string? storageaccounturi;
-
         static string? containername;
+        static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
+        static readonly string imageDirPath = "imageDir";
+
         public async static Task Main(string[] args)
         {
             HostBuilder builder = new HostBuilder();
@@ -28,9 +31,21 @@ namespace PlantHealthConsoleApp
         private static void CheckForNewFileAdditionToDirectory()
         {
             FileSystemWatcher watcher = new();
-            watcher.Path = GetvaluesFromConfig("imageDir");
-            watcher.Created += FileSystemWatcher_FileCreatedEvent;
+            watcher.Path = GetDirectoryForImageUpload();
+            watcher.Created += FileSystemWatcher_FileCreatedEvent; ;
             watcher.EnableRaisingEvents = true;
+        }
+
+        private static string GetDirectoryForImageUpload()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
+            {
+                return $"Home/Documents/{imageDirPath}";
+            }
+            else
+            {
+                return $"G:\\{imageDirPath}";
+            }
         }
 
         private static string GetvaluesFromConfig(string configName)
@@ -41,18 +56,21 @@ namespace PlantHealthConsoleApp
             }
             return string.Empty;
         }
-
         private async static void FileSystemWatcher_FileCreatedEvent(object sender, FileSystemEventArgs fileSystemEvent)
         {
             using (FileStream fileStream = new(fileSystemEvent.FullPath, FileMode.Open))
             {
                 try
                 {
-                    connectionstring = GetvaluesFromConfig("connectionstring");
+                    var client = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
+                    var secret = await client.GetSecretAsync(secretIdentifier);
+                    connectionstring = secret.Value;
                     storageaccounturi = GetvaluesFromConfig("storageaccounturi");
                     containername = GetvaluesFromConfig("containername");
-
-                    await UploadFileToAzureStorageAsync( connectionstring,fileSystemEvent?.Name,containername, fileStream);
+                    if (!string.IsNullOrEmpty(fileSystemEvent.Name))
+                    {
+                        await UploadFileToAzureStorageAsync(connectionstring, fileSystemEvent.Name, containername, fileStream);
+                    }
                 }
                 catch (Exception ex)
                 {
