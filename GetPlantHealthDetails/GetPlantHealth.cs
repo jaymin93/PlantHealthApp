@@ -12,23 +12,29 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net;
+using Microsoft.Azure.KeyVault;
 
 namespace GetPlantHealthDetails
 {
     public static class GetPlantHealth
     {
-        public static CloudStorageAccount storageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=planthealthapp;AccountKey=TtUK1vbYh3Z1vBycLsn+1UAeAGI0lBvPYwyQCE9Z68JdmT69byy7Qx8BSvqJDGPN/awTvrDf+6Zb+ASt9CV4mw==;EndpointSuffix=core.windows.net");
+        public static CloudStorageAccount storageAccount = null;
+        public static CloudTableClient tableClient = null;
+        public static CloudTable table = null;
         static string tableName = "PlantHealthAppTable";
-
-        public static CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-
-        public static CloudTable table = tableClient.GetTableReference(tableName);
 
         [FunctionName("GetPlantHealth")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
             ILogger log)
         {
+            var client = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
+            var connectionstring = await client.GetSecretAsync("https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7");
+
+            storageAccount = CloudStorageAccount.Parse(connectionstring.Value);
+            tableClient = storageAccount.CreateCloudTableClient();
+            table = tableClient.GetTableReference(tableName);
+
             string rowkey = req.Query["RowKey"];
             if (string.IsNullOrEmpty(rowkey))
             {
