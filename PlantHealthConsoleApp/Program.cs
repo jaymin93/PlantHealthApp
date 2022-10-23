@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.KeyVault;
 using Microsoft.Extensions.Configuration;
@@ -38,7 +39,8 @@ namespace PlantHealthConsoleApp
 
         private static string GetDirectoryForImageUpload()
         {
-            string path = $"{Environment.SpecialFolder.MyDocuments}\\{imageDirPath}";
+            string path = $"{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),imageDirPath) }";
+            Console.WriteLine($"path is {path}");
             CreateDirectoryIfNotExist(path);
             return path;
         }
