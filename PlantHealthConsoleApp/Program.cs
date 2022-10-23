@@ -1,9 +1,7 @@
-﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs;
 using Microsoft.Azure.KeyVault;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using System.Diagnostics.SymbolStore;
-using System.Runtime.InteropServices;
 
 namespace PlantHealthConsoleApp
 {
@@ -40,13 +38,16 @@ namespace PlantHealthConsoleApp
 
         private static string GetDirectoryForImageUpload()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
+            string path = $"{Environment.SpecialFolder.MyDocuments}\\{imageDirPath}";
+            CreateDirectoryIfNotExist(path);
+            return path;
+        }
+
+        private static void CreateDirectoryIfNotExist(string DirectoryPath)
+        {
+            if (!Directory.Exists(DirectoryPath))
             {
-                return $"Home/Documents/{imageDirPath}";
-            }
-            else
-            {
-                return $"G:\\{imageDirPath}";
+                Directory.CreateDirectory(DirectoryPath);
             }
         }
 
