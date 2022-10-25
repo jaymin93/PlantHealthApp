@@ -18,12 +18,11 @@ namespace PlantHealthAppXam.ViewModels
 
         public ObservableCollection<PlantHealthDeatils> ItemsList { get; }
         public Command LoadItemsCommand { get; }
-        public Command AddItemCommand { get; }
         public Command<PlantHealthDeatils> ItemTapped { get; }
 
         public ItemsViewModel()
         {
-            Title = "Browse";
+            Title = "Plant List";
             ItemsList = new ObservableCollection<PlantHealthDeatils>();
             LoadItemsCommand = new Command(async () => await ExecuteLoadItemsCommand());
 
@@ -75,7 +74,8 @@ namespace PlantHealthAppXam.ViewModels
                 return;
 
             // This will push the ItemDetailPage onto the navigation stack
-            await Shell.Current.GoToAsync($"{nameof(ItemDetailPage)}?{nameof(ItemDetailViewModel.IMGURL)}={item.ImageURL}");
+            //Shell.Current.GoToAsync($"//home/bottomtab2?name={"Cat"}&test={"Dog"}");
+            await Shell.Current.GoToAsync($"{nameof(ItemDetailPage)}?{nameof(ItemDetailViewModel.IMGURL)}={item.ImageURL}&{nameof(ItemDetailViewModel.longitude)}={item.longitude}&{nameof(ItemDetailViewModel.latitude)}={item.latitude}");
         }
 
         public async Task<List<PlantHealthDeatils>> GetDataAsync()

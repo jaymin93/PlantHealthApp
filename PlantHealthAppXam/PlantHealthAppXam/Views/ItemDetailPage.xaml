@@ -6,6 +6,7 @@
 
     <StackLayout Spacing="20" Padding="15">
         <Image Source="{Binding IMGURL}"></Image>
+        <Button Text="Open Map" Command="{Binding OpenMapCommand}"></Button>
     </StackLayout>
-
+    
 </ContentPage>

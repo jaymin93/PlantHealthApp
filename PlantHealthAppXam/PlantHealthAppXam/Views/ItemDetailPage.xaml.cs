@@ -1,5 +1,7 @@
 ﻿using PlantHealthAppXam.ViewModels;
 using System.ComponentModel;
+using System.Threading.Tasks;
+using Xamarin.Essentials;
 using Xamarin.Forms;
 
 namespace PlantHealthAppXam.Views
@@ -10,6 +12,11 @@ namespace PlantHealthAppXam.Views
         {
             InitializeComponent();
             BindingContext = new ItemDetailViewModel();
+        }
+
+        private async void Button_Clicked(object sender, System.EventArgs e)
+        {
+           
         }
     }
 }
