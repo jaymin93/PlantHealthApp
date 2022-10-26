@@ -12,7 +12,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Net;
 using Microsoft.Azure.KeyVault;
-using System.Configuration;
 
 namespace GetPlantHealthDetails
 {
@@ -23,8 +22,8 @@ namespace GetPlantHealthDetails
         private static CloudTable table = null;
         private static KeyVaultClient client = null;
         private static Microsoft.Azure.KeyVault.Models.SecretBundle connectionstring = null;
-        private static string tableName = string.Empty;
-        private static string secretIdentifier = string.Empty;
+        private static string tableName = "PlantHealthAppTable";
+        private static string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
 
         [FunctionName("GetPlantHealth")]
         public static async Task<IActionResult> Run(
@@ -119,8 +118,6 @@ namespace GetPlantHealthDetails
         {
             TokenHelper.clientID ??= GetEnviromentValue("clientID");
             TokenHelper.clientSecret ??= GetEnviromentValue("clientSecret");
-            tableName ??= GetEnviromentValue("tableName");
-            secretIdentifier ??= GetEnviromentValue("secretIdentifier");
         }
     }
 }
