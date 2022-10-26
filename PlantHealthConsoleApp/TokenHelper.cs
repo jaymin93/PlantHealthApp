@@ -5,10 +5,12 @@ namespace PlantHealthConsoleApp
 {
     public static class TokenHelper
     {
+        public static string clientID;
+        public static string clientSecret;
         public static async Task<string> GetAccessTokenAsync(string authority, string resource, string scope)
         {
             var context = new AuthenticationContext(authority);
-            ClientCredential credential = new ClientCredential("7477378a-94f8-4158-9c6e-fe5d776cc71a", "9OY8Q~Q21dj1s1A08lAcC6ITo2GBTsyTO3TAZaar");
+            ClientCredential credential = new ClientCredential(clientID,clientSecret);
             AuthenticationResult result = await context.AcquireTokenAsync(resource, credential);
             Trace.WriteLine(result.AccessToken);
             if (result == null)
