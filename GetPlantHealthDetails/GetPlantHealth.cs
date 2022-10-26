@@ -8,34 +8,35 @@ using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.WindowsAzure.Storage;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net;
 using Microsoft.Azure.KeyVault;
+using System.Configuration;
 
 namespace GetPlantHealthDetails
 {
-    public static class GetPlantHealth
+    public class GetPlantHealth
     {
-        private static CloudStorageAccount storageAccount;
-        private static CloudTableClient tableClient;
-        private static CloudTable table;
-        private static readonly string tableName = "PlantHealthAppTable";
-        private static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
-
+        private static CloudStorageAccount storageAccount = null;
+        private static CloudTableClient tableClient = null;
+        private static CloudTable table = null;
+        private static KeyVaultClient client = null;
+        private static Microsoft.Azure.KeyVault.Models.SecretBundle connectionstring = null;
+        private static string tableName = string.Empty;
+        private static string secretIdentifier = string.Empty;
 
         [FunctionName("GetPlantHealth")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
             ILogger log)
         {
-            var client = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
-            var connectionstring = await client.GetSecretAsync(secretIdentifier);
-
-            storageAccount = CloudStorageAccount.Parse(connectionstring.Value);
-            tableClient = storageAccount.CreateCloudTableClient();
-            table = tableClient.GetTableReference(tableName);
+            SetClientIDAndSecret();
+            client ??= new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
+            connectionstring ??= await client.GetSecretAsync(secretIdentifier);
+            storageAccount ??= CloudStorageAccount.Parse(connectionstring.Value);
+            tableClient ??= storageAccount.CreateCloudTableClient();
+            table ??= tableClient.GetTableReference(tableName);
 
             string rowkey = req.Query["RowKey"];
             if (string.IsNullOrEmpty(rowkey))
@@ -48,7 +49,7 @@ namespace GetPlantHealthDetails
             }
         }
 
-        public async static Task<List<PlantHealthDeatils>> GetPlantHealthDeatilsAsync(ILogger logger)
+        private static async Task<List<PlantHealthDeatils>> GetPlantHealthDeatilsAsync(ILogger logger)
         {
             try
             {
@@ -84,7 +85,7 @@ namespace GetPlantHealthDetails
             }
         }
 
-        public async static Task<HttpResponseMessage> UpdatePlantHealthDeatilsByRowkeyAsync(string rowkey, ILogger logger)
+        private static async Task<HttpResponseMessage> UpdatePlantHealthDeatilsByRowkeyAsync(string rowkey, ILogger logger)
         {
             try
             {
@@ -107,6 +108,19 @@ namespace GetPlantHealthDetails
                 logger.LogError(exp, "Unable to Update PlantHealthDeatils");
                 return default;
             }
+        }
+
+        private static string GetEnviromentValue(string key)
+        {
+            return Environment.GetEnvironmentVariable(key);
+        }
+
+        private static void SetClientIDAndSecret()
+        {
+            TokenHelper.clientID ??= GetEnviromentValue("clientID");
+            TokenHelper.clientSecret ??= GetEnviromentValue("clientSecret");
+            tableName ??= GetEnviromentValue("tableName");
+            secretIdentifier ??= GetEnviromentValue("secretIdentifier");
         }
     }
 }

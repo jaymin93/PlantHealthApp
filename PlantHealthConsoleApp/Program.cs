@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.KeyVault;
 using Microsoft.Extensions.Configuration;

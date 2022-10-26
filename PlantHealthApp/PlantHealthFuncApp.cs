@@ -6,6 +6,7 @@ using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json;
 using PlantHealthApp;
 using RestSharp;
@@ -14,30 +15,32 @@ namespace PlantHealth.Function
 {
     public class PlantHealthFuncApp
     {
-        static string predictionUrl = "https://planthealthcustomvision-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/e8690773-d03f-439f-9cd0-4bf193cd8687/classify/iterations/Iteration1/url";
-        static string storageAccountUri = "https://planthealthapp.blob.core.windows.net/";
-        static string containerName = "planthealthcontainer/";
-        static string tableName = "PlantHealthAppTable";
+        private static string predictionUrl;
+        private static string storageAccountUri;
+        private static string containerName;
+        private static string tableName;
         private static TimeZoneInfo INDIAN_ZONE = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
-        static readonly string secretIdentifier = "https://planthealthappsecret.vault.azure.net/secrets/storageAccountConnectionString/92f4ed20ff4041ae8b05303f7baf79f7";
-        static readonly string secretIdentifierForPrediction = "https://planthealthappsecret.vault.azure.net/secrets/predictionEndpointsecret/b6f86ef63dfc456bbd3883d1d45498b4";
-
-
-        public static CloudStorageAccount storageAccount = null;
-        public static CloudTableClient tableClient = null;
-        public static CloudTable table = null;
+        private static string secretIdentifier;
+        private static string secretIdentifierForPrediction;
+        private static CloudStorageAccount storageAccount = null;
+        private static CloudTableClient tableClient = null;
+        private static CloudTable table = null;
         private static string predictionEndpointsecret = string.Empty;
+        private static KeyVaultClient client = null;
+        private static Microsoft.Azure.KeyVault.Models.SecretBundle connectionstring = null;
+        private static Microsoft.Azure.KeyVault.Models.SecretBundle prediction = null;
 
         [FunctionName("PlantHealthFuncApp")]
-        public async static Task Run([BlobTrigger("planthealthcontainer/{name}", Connection = "planthealthapp_STORAGE")] Stream myBlob, string name, ILogger log)
+        public static async Task Run([BlobTrigger("planthealthcontainer/{name}", Connection = "planthealthapp_STORAGE")] Stream myBlob, string name, ILogger log)
         {
-            var client = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
-            var connectionstring = await client.GetSecretAsync(secretIdentifier);
-            var prediction = await client.GetSecretAsync(secretIdentifierForPrediction);
+            SetClientIDAndSecret();
+            client ??= new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(TokenHelper.GetAccessTokenAsync));
+            connectionstring ??= await client.GetSecretAsync(secretIdentifier);
+            prediction ??= await client.GetSecretAsync(secretIdentifierForPrediction);
             predictionEndpointsecret = prediction.Value;
-            storageAccount = CloudStorageAccount.Parse(connectionstring.Value);
-            tableClient = storageAccount.CreateCloudTableClient();
-            table = tableClient.GetTableReference(tableName);
+            storageAccount ??= CloudStorageAccount.Parse(connectionstring.Value);
+            tableClient ??= storageAccount.CreateCloudTableClient();
+            table ??= tableClient.GetTableReference(tableName);
             string imageUrl = $"{storageAccountUri}{containerName}{name}";
             PlantHealthCustomVisionModel response = await GetProbabilityValuesFromCustomVisionRestApiAsync(imageUrl);
             if (ReportAffectedPlant(response))
@@ -99,5 +102,23 @@ namespace PlantHealth.Function
                 return JsonConvert.DeserializeObject<PlantHealthCustomVisionModel>(response.Content.ToString());
             }
         }
+
+        private static string GetEnviromentValue(string key)
+        {
+            return Environment.GetEnvironmentVariable(key);
+        }
+
+        private static void SetClientIDAndSecret()
+        {
+            TokenHelper.clientID ??= GetEnviromentValue("clientID");
+            TokenHelper.clientSecret ??= GetEnviromentValue("clientSecret");
+            predictionUrl ??= GetEnviromentValue("predictionUrl");
+            storageAccountUri ??= GetEnviromentValue("storageAccountUri");
+            containerName ??= GetEnviromentValue("containerName");
+            tableName ??= GetEnviromentValue("tableName");
+            secretIdentifier ??= GetEnviromentValue("secretIdentifier");
+            secretIdentifierForPrediction ??= GetEnviromentValue("secretIdentifierForPrediction");
+        }
     }
 }
+
