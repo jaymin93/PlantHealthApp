@@ -3,8 +3,10 @@ using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.KeyVault.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using WinSCP;
 
 namespace PlantHealthConsoleApp
 {
@@ -18,6 +20,8 @@ namespace PlantHealthConsoleApp
         private static string imageDirPath = string.Empty;
         private static SecretBundle? secret;
         private static KeyVaultClient? client;
+        private static System.Timers.Timer? timer;
+        private static string imageProcessPath = string.Empty;
 
         public async static Task Main(string[] args)
         {
@@ -27,8 +31,21 @@ namespace PlantHealthConsoleApp
              .AddJsonFile("appsettings.json", true, true)
              .Build();
             CheckForNewFileAdditionToDirectory();
+            InitTimer();
 
             await builder.RunConsoleAsync();
+        }
+        private static void InitTimer()
+        {
+            timer ??= new System.Timers.Timer();
+            timer.Enabled = true;
+            timer.Interval = 60000;
+            timer.Elapsed += Tmr_Elapsed;
+        }
+
+        private static void Tmr_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            GetFilesFromDronFTPServer(GetvaluesFromConfig("droneFtpUrl"), GetvaluesFromConfig("ftpUsername"), GetvaluesFromConfig("ftpPassword"), Convert.ToInt32(GetvaluesFromConfig("ftpport")));
         }
 
         private static void CheckForNewFileAdditionToDirectory()
@@ -44,10 +61,10 @@ namespace PlantHealthConsoleApp
 
         private static string GetDirectoryForImageUpload()
         {
-            string path = $"{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), imageDirPath)}";
-            Console.WriteLine($"path is {path}");
-            CreateDirectoryIfNotExist(path);
-            return path;
+            imageProcessPath = $"{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), imageDirPath)}";
+            Console.WriteLine($"path is {imageProcessPath}");
+            CreateDirectoryIfNotExist(imageProcessPath);
+            return imageProcessPath;
         }
 
         private static void CreateDirectoryIfNotExist(string DirectoryPath)
@@ -58,11 +75,11 @@ namespace PlantHealthConsoleApp
             }
         }
 
-        private static string GetvaluesFromConfig(string configName)
+        private static string GetvaluesFromConfig(string key)
         {
-            if (!string.IsNullOrEmpty(configName) && config is not null)
+            if (!string.IsNullOrEmpty(key) && config is not null)
             {
-                return config[configName];
+                return config[key];
             }
             return string.Empty;
         }
@@ -103,6 +120,33 @@ namespace PlantHealthConsoleApp
             await blobClient.UploadAsync(fileStream);
             Console.WriteLine($"file {fileName} uploaded successfully");
             return await Task.FromResult(true);
+        }
+
+        private static void GetFilesFromDronFTPServer(string droneFtpUrl, string ftpUsername, string ftpPassword, int ftpport)
+        {
+            try
+            {
+                imageProcessPath ??= GetDirectoryForImageUpload();
+                SessionOptions sessionOptions = new SessionOptions
+                {
+                    Protocol = Protocol.Ftp,
+                    HostName = droneFtpUrl,
+                    UserName = ftpUsername,
+                    Password = ftpPassword,
+                    PortNumber = ftpport
+                };
+                using (Session session = new Session())
+                {
+                    string droneCapturedImagePath = "/home/prt85463/images";
+                    session.Open(sessionOptions);
+                    session.GetFiles(droneCapturedImagePath, imageProcessPath).Check();
+                    session.RemoveFiles(droneCapturedImagePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
     }
 }
