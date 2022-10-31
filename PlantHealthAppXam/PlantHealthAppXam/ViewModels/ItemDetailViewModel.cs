@@ -18,7 +18,7 @@ namespace PlantHealthAppXam.ViewModels
         public string latitude { get; set; }
 
         public string Id { get; set; }
-
+        
         public string IMGURL
         {
             get => imgurl;

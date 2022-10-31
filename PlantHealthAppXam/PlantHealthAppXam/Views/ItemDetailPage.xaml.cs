@@ -13,10 +13,5 @@ namespace PlantHealthAppXam.Views
             InitializeComponent();
             BindingContext = new ItemDetailViewModel();
         }
-
-        private async void Button_Clicked(object sender, System.EventArgs e)
-        {
-           
-        }
     }
 }

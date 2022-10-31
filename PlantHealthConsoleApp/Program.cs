@@ -3,9 +3,6 @@ using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.KeyVault.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using WinSCP;
 
 namespace PlantHealthConsoleApp
@@ -40,10 +37,10 @@ namespace PlantHealthConsoleApp
             timer ??= new System.Timers.Timer();
             timer.Enabled = true;
             timer.Interval = 60000;
-            timer.Elapsed += Tmr_Elapsed;
+            timer.Elapsed += Timermr_Elapsed;
         }
 
-        private static void Tmr_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        private static void Timermr_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             GetFilesFromDronFTPServer(GetvaluesFromConfig("droneFtpUrl"), GetvaluesFromConfig("ftpUsername"), GetvaluesFromConfig("ftpPassword"), Convert.ToInt32(GetvaluesFromConfig("ftpport")));
         }

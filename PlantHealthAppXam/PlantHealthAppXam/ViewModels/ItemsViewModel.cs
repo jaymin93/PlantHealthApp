@@ -80,7 +80,7 @@ namespace PlantHealthAppXam.ViewModels
 
         public async Task<List<PlantHealthDeatils>> GetDataAsync()
         {
-            var client = new RestClient("https://getplanthealthdetails.azurewebsites.net/api/GetPlantHealth?code=Ffcqj7PbO68QaTg2zWRNN7yp76kyYXNr8YBC_qw-jUXSAzFuAIrvKw==");
+            var client = new RestClient("enter-correct-value");
             var request = new RestRequest();
             request.Method = Method.Get;
             var response = await client.ExecuteAsync(request);
